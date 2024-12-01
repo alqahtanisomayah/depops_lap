@@ -1,4 +1,4 @@
-// -*- coding: utf-8 -*-
+git add .// -*- coding: utf-8 -*-
 //  _   _       _   ____       ____
 // | \ | | ___ | |_/ ___|  ___/ ___|  ___  ___ _   _ _ __ ___
 // |  \| |/ _ \| __\___ \ / _ \___ \ / _ \/ __| | | | '__/ _ \
@@ -12,7 +12,7 @@
 //
 // This file is part of DevSecOps Training.
 
-pipeline {
+pgitipeline {
    agent any
    environment {
      DOCKER_REGISTRY = "localhost:6000"  // Docker registry
