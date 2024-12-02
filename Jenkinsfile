@@ -1,4 +1,4 @@
-git add .// -*- coding: utf-8 -*-
+// -*- coding: utf-8 -*-
 //  _   _       _   ____       ____
 // | \ | | ___ | |_/ ___|  ___/ ___|  ___  ___ _   _ _ __ ___
 // |  \| |/ _ \| __\___ \ / _ \___ \ / _ \/ __| | | | '__/ _ \
@@ -12,7 +12,7 @@ git add .// -*- coding: utf-8 -*-
 //
 // This file is part of DevSecOps Training.
 
-pgitipeline {
+pipeline {
    agent any
    environment {
      DOCKER_REGISTRY = "localhost:6000"  // Docker registry
@@ -47,6 +47,18 @@ pgitipeline {
                      '''
          }
       }
+      stage('Static Analysis') {
+         steps {
+          parallel (
+            SCA: {
+               echo  'Dependency Check'
+            },
+            SAST: {
+                  echo  'FindSecBugs'
+            }
+          )
+        }
+      }
       stage('Staging Setup') {
          steps {
             parallel(
@@ -57,7 +69,8 @@ pgitipeline {
                               docker build --no-cache -t "devsecops/app:staging" -f docker/app/Dockerfile .
                               docker tag "devsecops/app:staging" "${DOCKER_REGISTRY}/devsecops/app:staging"
                               docker push "${DOCKER_REGISTRY}/devsecops/app:staging"
-
+                              docker rmi "${DOCKER_REGISTRY}/devsecops/app:staging"
+                              
                            '''
                         },
                   db:   { // Parallely start the MySQL Daemon in the staging server first stop if already running then start
@@ -113,6 +126,13 @@ pgitipeline {
                            exit 100
                         fi
                      '''
+                  },
+                  DAST: {
+                     withCredentials([usernamePassword(credentialsId: 'archerysec', passwordVariable: 'ARCHERY_PASS', usernameVariable: 'ARCHERY_USER')]) {
+                     sh '''
+                        bash ${WORKSPACE}/scripts/zapscanner/zapscanner_cli.sh
+                     '''
+                     }
                   },
                )
          }
@@ -172,14 +192,6 @@ pgitipeline {
                 -v /home/vagrant/logs:/usr/local/tomcat/logs --name prodapp ${DOCKER_REGISTRY}/devsecops/app:production
              '''
             }
-         }
-      }
-      stage('WAF') {
-         steps {
-             sh '''
-             export BHOST="`hostname -I | awk '{print $1}'`"
-             cd /home/vagrant/on-prem-lab/provisioning/production/WAF/ && docker-compose up -d
-             '''
          }
       }
    }
